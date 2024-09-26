@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import chainlit as cl
 import json
-from movie_functions import get_now_playing_movies, get_showtimes, get_reviews, buy_ticket
+from movie_functions import get_now_playing_movies, get_showtimes, get_reviews, buy_ticket, confirm_ticket_purchase
 
 load_dotenv()
 
@@ -53,8 +53,10 @@ Here are some helpful functions you can use:
     This function provides showtimes for a specific movie in a given location where location is a zip code.
 - get_reviews(movie_id)
     This function provides a brief summary of critical reception, audience scores, and notable aspects of the film without spoiling key plot points. Use the movie_id to get the reviews.
+- confirm_ticket_purchase(theater, movie, showtime)
+    This function is invoked when the user wants to purchase a ticket. It should ask the user for confirmation and then invoke the buy_ticket function if they confirm in the affirmative.
 - buy_ticket(theater, movie, showtime)
-    This function simulates the ticket booking process and provides a confirmation summary.
+    This function purchases the ticket booking process and provides a confirmation summary. Call this function only after the user confirms the ticket purchase with the confirm_ticket_purchase function.
     
 If you need to make a function call, return only the following JSON format without any additional text.
 {
@@ -109,8 +111,6 @@ async def on_message(message: cl.Message):
     response_message = await generate_response(client, message_history, gen_kwargs)
 
     # Check if the response is a JSON
-    print("Response message content 1:")
-    print(response_message.content)
     while True:
         try:
             function_call = json.loads(response_message.content)
@@ -133,6 +133,11 @@ async def on_message(message: cl.Message):
                     result = get_reviews(movie_id)
                     print("review fn")
                     print(result)
+                elif function_name == "confirm_ticket_purchase":
+                    theater = arguments.get("theater", "")
+                    movie = arguments.get("movie", "")
+                    showtime = arguments.get("showtime", "")
+                    result = confirm_ticket_purchase(theater, movie, showtime)
                 elif function_name == "buy_ticket":
                     theater = arguments.get("theater", "")
                     movie = arguments.get("movie", "")
@@ -140,7 +145,6 @@ async def on_message(message: cl.Message):
                     result = buy_ticket(theater, movie, showtime)
                 else:
                     result = f"Unknown function: {function_name}"
-                print(result)
                 # Add the result to the response_message
 
                 # Append the function result to the message history
@@ -148,10 +152,7 @@ async def on_message(message: cl.Message):
 
                 # Generate a new response based on the function result
                 response_message = await generate_response(client, message_history, gen_kwargs)
-                print("Response message content 2:")
-                print(response_message.content)
                 # Send the result as a new message
-                print("Sending message")
                 # await cl.Message(content=response_message.content).send()
                 message_history.append({"role": "assistant", "content": response_message.content})
                 continue

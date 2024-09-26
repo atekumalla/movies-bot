@@ -19,7 +19,7 @@ def get_now_playing_movies():
     if not movies:
         return "No movies are currently playing."
 
-    formatted_movies = "The TMDb API returned these movies:\n\n"
+    formatted_movies = "The TMDB API returned these movies:\n\n"
 
     for movie in movies:
         title = movie.get('title', 'N/A')
@@ -72,6 +72,9 @@ def get_showtimes(title, location):
 
 def buy_ticket(theater, movie, showtime):
     return f"Ticket purchased for {movie} at {theater} for {showtime}."
+
+def confirm_ticket_purchase(theater, movie, showtime):
+    return f" Do you wish to purchase a ticket for {movie} at {theater} for {showtime}?"
 
 def get_reviews(movie_id):
     url = f"https://api.themoviedb.org/3/movie/{movie_id}/reviews?language=en-US&page=1"
