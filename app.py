@@ -109,6 +109,7 @@ async def on_message(message: cl.Message):
     response_message = await generate_response(client, message_history, gen_kwargs)
 
     # Check if the response is a JSON
+    print("Response message content 1:")
     print(response_message.content)
     while True:
         try:
@@ -147,11 +148,11 @@ async def on_message(message: cl.Message):
 
                 # Generate a new response based on the function result
                 response_message = await generate_response(client, message_history, gen_kwargs)
-                print("Response message content:")
+                print("Response message content 2:")
                 print(response_message.content)
                 # Send the result as a new message
                 print("Sending message")
-                await cl.Message(content=response_message.content).send()
+                # await cl.Message(content=response_message.content).send()
                 message_history.append({"role": "assistant", "content": response_message.content})
                 continue
             break  # Exit the loop if we successfully parsed the JSON
