@@ -82,6 +82,24 @@ When calling functions, ensure that the output contains only the JSON format, an
 
 """
 
+FETCH_REVIEW_PROMPT = """\
+Based on the conversation, determine if the topic is about a specific movie. Determine if the user is asking a question that would be aided by knowing what critics are saying about the movie. Determine if the reviews for that movie have already been provided in the conversation. If so, do not fetch reviews.
+
+Your only role is to evaluate the conversation, and decide whether to fetch reviews.
+
+Output the current movie, id, a boolean to fetch reviews in JSON format, and your
+rationale. Do not output as a code block.
+
+{
+    "movie": "title",
+    "id": 123,
+    "fetch_reviews": true
+    "rationale": "reasoning"
+}    
+"""
+
+
+
 @observe
 @cl.on_chat_start
 def on_chat_start():    
@@ -107,7 +125,7 @@ async def generate_response(client, message_history, gen_kwargs):
 async def on_message(message: cl.Message):
     message_history = cl.user_session.get("message_history", [])
     message_history.append({"role": "user", "content": message.content})
-    
+    message_history = await movie_review_fetch_decider(message_history)
     response_message = await generate_response(client, message_history, gen_kwargs)
 
     # Check if the response is a JSON
@@ -120,7 +138,6 @@ async def on_message(message: cl.Message):
                 
                 # Import the functions from movie_functions
                 from movie_functions import get_now_playing_movies, get_showtimes, get_reviews, buy_ticket
-                print(function_name)
                 # Call the appropriate function based on the name
                 if function_name == "get_now_playing_movies":
                     result = get_now_playing_movies()
@@ -131,8 +148,6 @@ async def on_message(message: cl.Message):
                 elif function_name == "get_reviews":
                     movie_id = arguments.get("movie_id", "")
                     result = get_reviews(movie_id)
-                    print("review fn")
-                    print(result)
                 elif function_name == "confirm_ticket_purchase":
                     theater = arguments.get("theater", "")
                     movie = arguments.get("movie", "")
@@ -162,6 +177,37 @@ async def on_message(message: cl.Message):
             break
 
     cl.user_session.set("message_history", message_history)
+
+
+async def movie_review_fetch_decider(message_history):
+    # Check if the conversation is about a specific movie
+    # Create a new message with FETCH_REVIEW_PROMPT
+    fetch_review_message = [
+        {"role": "system", "content": FETCH_REVIEW_PROMPT},
+        {"role": "user", "content": json.dumps(message_history)}
+    ]
+
+    # Generate response for fetch review decision
+    fetch_review_response = await generate_response(client, fetch_review_message, gen_kwargs)
+
+    try:
+        fetch_review_decision = json.loads(fetch_review_response.content)
+        if isinstance(fetch_review_decision, dict) and fetch_review_decision.get("fetch_reviews", False):
+            movie_id = fetch_review_decision.get("id")
+            if movie_id:
+                # Import get_reviews function
+                from movie_functions import get_reviews
+                
+                # Call get_reviews function
+                reviews = get_reviews(movie_id)
+                
+                # Append the reviews to message_history
+                message_history.append({"role": "system", "content": reviews})
+    except json.JSONDecodeError:
+        # If the response is not a valid JSON, we'll skip the review fetching
+        pass
+    return message_history
+
 
 if __name__ == "__main__":
     cl.main()
