@@ -1,6 +1,6 @@
 # Movies bot
 
-This project is a Chainlit application that uses LLMs to get informatio about now playing movies, fetch showtimes for a specific movie at a given location, helps book tickets
+This project is a Chainlit application that uses LLMs to get information about now playing movies, fetch showtimes for a specific movie at a given location, helps book tickets
 and aggregates movie reviews
 
 ## Getting Started
